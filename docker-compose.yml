@@ -1,0 +1,40 @@
+version: '3.4'
+
+services:
+    rabbitmq:
+        image: rabbitmq:3-management-alpine
+        container_name: 'rabbitmq'
+        ports:
+            - 5672:5672
+            - 15672:15672
+        volumes:
+            - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+            - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+  
+    pixel.http:
+        image: ${DOCKER_REGISTRY-}pixelhttp
+        container_name: 'pixelhttp'
+        build:
+            context: Pixel.Http
+            dockerfile: Dockerfile
+        environment:
+          - Messaging__Host=rabbitmq
+          - ASPNETCORE_ENVIRONMENT=Development
+          - ASPNETCORE_HTTP_PORTS=80
+          - ASPNETCORE_HTTPS_PORTS=443
+        ports:
+            - "80"
+            - "443"
+        volumes:
+            - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+            - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+    
+    pixel.storage.service:
+        image: ${DOCKER_REGISTRY-}pixelstorageservice
+        container_name: 'pixelstorageservice'
+        build:
+            context: Pixel.Storage.Service
+            dockerfile: Dockerfile
+        environment:
+          - Messaging__Host=rabbitmq
+
